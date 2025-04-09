@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy.orm import relationship
 from db.session import Base
 
 class User(Base):
@@ -10,3 +11,5 @@ class User(Base):
     hashed_password = Column(String(255))
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
+
+    emotions = relationship("Emotion", back_populates="user")

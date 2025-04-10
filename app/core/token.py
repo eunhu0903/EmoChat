@@ -14,7 +14,6 @@ def get_token_from_header(authorization: str = Header(None)) -> str:
 def verify_token(token: str, db: Session) -> str:
     try:
         payload = decode_access_token(token)
-
         email: str = payload.get("sub")
 
         if email is None:
@@ -29,7 +28,13 @@ def verify_token(token: str, db: Session) -> str:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="잘못된 이메일 또는 토큰입니다.",
             )
-        
+
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="정지된 계정입니다.",
+            )
+
         expiration: int = payload.get("exp")
         if expiration and expiration < int(datetime.utcnow().timestamp()):
             raise HTTPException(

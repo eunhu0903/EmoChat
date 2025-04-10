@@ -30,6 +30,9 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="잘못된 아이디 또는 비밀번호 입니다.")
-    
+
+    if not db_user.is_active:
+        raise HTTPException(status_code=403, detail="이 계정은 정지되었습니다.")
+     
     access_token = create_access_token(data={"sub": db_user.email})
     return {"access_token": access_token, "token_type": "Bearer"}

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.session import Base, engine
-from api import admin, auth, home, emotion, matching, follow
+from api import admin, auth, home, emotion, matching, follow, profile
 
 Base.metadata.create_all(bind=engine)
 
@@ -21,3 +21,4 @@ app.include_router(home.router)
 app.include_router(emotion.router)
 app.include_router(follow.router)
 app.include_router(matching.router)
+app.include_router(profile.router)

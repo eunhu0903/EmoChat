@@ -1,7 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from api.admin import user_management
+from api.auth import auth
+from api.home import home
+from api.emotion import emotion
+from api.user import follow, profile, search
+from api.match import matching
+from api.chat import websocket
 from db.session import Base, engine
-from api import admin, auth, home, emotion, matching, follow, profile, search
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -15,7 +22,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(admin.router)
+app.include_router(user_management.router)
+
+
 app.include_router(auth.router)
 app.include_router(home.router)
 app.include_router(emotion.router)
@@ -23,3 +32,4 @@ app.include_router(follow.router)
 app.include_router(matching.router)
 app.include_router(profile.router)
 app.include_router(search.router)
+app.include_router(websocket.router)

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.admin import user_management
+from api.admin import user_management, user_status
 from api.auth import auth
 from api.home import home
 from api.emotion import emotion
@@ -23,7 +23,7 @@ app.add_middleware(
 )
 
 app.include_router(user_management.router)
-
+app.include_router(user_status.router)
 
 app.include_router(auth.router)
 app.include_router(home.router)

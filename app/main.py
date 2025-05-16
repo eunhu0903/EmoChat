@@ -7,6 +7,7 @@ from api.emotion import emotion
 from api.user import follow, profile, search
 from api.match import matching
 from api.chat import websocket
+from api.report import report
 from db.session import Base, engine
 
 
@@ -34,3 +35,4 @@ app.include_router(matching.router)
 app.include_router(profile.router)
 app.include_router(search.router)
 app.include_router(websocket.router)
+app.include_router(report.router)

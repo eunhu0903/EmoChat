@@ -25,18 +25,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Admin
 app.include_router(user_management.router)
 app.include_router(user_status.router)
 app.include_router(role.router)
 
+# Auth
 app.include_router(auth.router)
-app.include_router(home.router)
-app.include_router(emotion.router)
-app.include_router(follow.router)
-app.include_router(matching.router)
-app.include_router(search.router)
-app.include_router(websocket.router)
-app.include_router(report.router)
 
+# Chat
+app.include_router(websocket.router)
+
+# Emotion
+app.include_router(emotion.router)
+
+# follow
+app.include_router(follow.router)
+
+# Home
+app.include_router(home.router)
+app.include_router(search.router)
+
+# Match
+app.include_router(matching.router)
+
+# Profile
 app.include_router(profile.router)
 app.include_router(update.router)
+
+# Report
+app.include_router(report.router)

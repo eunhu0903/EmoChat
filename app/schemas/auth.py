@@ -29,8 +29,3 @@ class TokenData(BaseModel):
 class TokenPayload(BaseModel):
     sub: str
     exp: Optional[int] = None
-
-class PasswordChangeRequest(BaseModel):
-    current_password: str
-    new_password: str
-    confirm_password: str

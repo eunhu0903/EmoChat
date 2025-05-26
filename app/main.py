@@ -10,6 +10,7 @@ from api.chat import websocket
 from api.report import report
 from api.profile import profile, update
 from api.home import search
+from api.block import block
 from db.session import Base, engine
 
 
@@ -55,3 +56,6 @@ app.include_router(update.router)
 
 # Report
 app.include_router(report.router)
+
+# Block
+app.include_router(block.router)

@@ -35,3 +35,21 @@ def block_user(block: BlockCreate, token: str = Depends(get_token_from_header), 
     db.commit()
 
     return {"message": "사용자를 차단했습니다."}
+
+@router.delete("/block", tags=["Block"])
+def unblock_user(unblock: BlockCreate, token: str = Depends(get_token_from_header), db: Session = Depends(get_db)):
+    email = verify_token(token, db)
+    blocker = db.query(User).filter(User.email == email).first()
+
+    block = db.query(Block).filter(
+        Block.blocker_id == blocker.id,
+        Block.blocked_id == unblock.blocked_id
+    ).first()
+
+    if not block:
+        raise HTTPException(status_code=404, detail="차단 기록이 없습니다.")
+    
+    db.delete(block)
+    db.commit()
+
+    return {"message": "차단이 해제되었습니다."}

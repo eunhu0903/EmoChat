@@ -40,3 +40,15 @@ def change_password(request: PasswordChangeRequest, token: str = Depends(get_tok
     db.commit()
 
     return {"message": "비밀번호가 성공적으로 변경되었습니다."}
+
+@router.delete("/delete-user", tags=["Profile"])
+def delete_user(token: str = Depends(get_token_from_header), db: Session = Depends(get_db)):
+    email = verify_token(token, db)
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
+    
+    db.delete(user)
+    db.commit()
+    return {"message": "계정이 성공적으로 삭제되었습니다."}

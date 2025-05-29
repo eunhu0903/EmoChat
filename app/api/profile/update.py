@@ -4,7 +4,7 @@ from db.session import get_db
 from core.token import verify_token, get_token_from_header
 from core.security import verify_password, get_password_hash
 from models.auth import User
-from schemas.profile import UsernameUpdate, PasswordChangeRequest
+from schemas.profile import UsernameUpdate, PasswordChangeRequest, DeleteAccountRequest
 
 router = APIRouter()
 
@@ -42,13 +42,17 @@ def change_password(request: PasswordChangeRequest, token: str = Depends(get_tok
     return {"message": "비밀번호가 성공적으로 변경되었습니다."}
 
 @router.delete("/delete-user", tags=["Profile"])
-def delete_user(token: str = Depends(get_token_from_header), db: Session = Depends(get_db)):
+def delete_user(request: DeleteAccountRequest, token: str = Depends(get_token_from_header), db: Session = Depends(get_db)):
     email = verify_token(token, db)
     user = db.query(User).filter(User.email == email).first()
 
     if not user:
         raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     
+    if not verify_password(request.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="비밀번호가 일치하지 않습니다.")
+    
     db.delete(user)
     db.commit()
+    
     return {"message": "계정이 성공적으로 삭제되었습니다."}

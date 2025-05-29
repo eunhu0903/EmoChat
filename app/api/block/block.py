@@ -4,10 +4,33 @@ from db.session import get_db
 from core.token import verify_token, get_token_from_header
 from models.auth import User
 from models.block import Block
-from schemas.block import BlockCreate
+from schemas.block import BlockCreate, BlockUser
 from datetime import datetime
 
 router = APIRouter()
+
+@router.get("/block", tags=["Block"], response_model=list[BlockUser])
+def block_get_user(token: str = Depends(get_token_from_header), db: Session = Depends(get_db)):
+    email = verify_token(token, db)
+    user = db.query(User).filter(User.email == email).first()
+
+    blocked = (
+        db.query(Block, User)
+        .join(User, Block.blocked_id == User.id)
+        .filter(Block.blocker_id == user.id)
+        .all()
+    )
+
+    return [
+        BlockUser(
+            blocked_id=blocked_user.id,
+            blocked_username=blocked_user.username,
+            blocked_email=blocked_user.email,
+            created_at=block.created_at
+        )
+        for block, blocked_user in blocked
+    ]
+
 
 @router.post("/block", tags=["Block"])
 def block_user(block: BlockCreate, token: str = Depends(get_token_from_header), db: Session = Depends(get_db)):

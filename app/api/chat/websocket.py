@@ -17,11 +17,20 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
         while True:
             data = await websocket.receive_text()
 
+            if data == "__exit__":
+                await websocket.close()
+                rooms[room_id].remove(websocket)
+                if not rooms[room_id]:
+                    del rooms[room_id]
+                break
+                    
+
             for connection in rooms[room_id]:
                 if connection != websocket:
                     await connection.send_text(data)
 
     except WebSocketDisconnect:
-        rooms[room_id].remove(websocket)
-        if not rooms[room_id]:
+        if websocket in rooms.get(room_id, []):
+            rooms[room_id].remove(websocket)
+        if room_id in rooms and not rooms[room_id]:
             del rooms[room_id]

@@ -32,7 +32,8 @@
 
       const result = await response.json();
       if (response.ok) {
-        document.getElementById("message").innerText = "회원가입 성공!";
+        window.location.href = "/login";
+       
       } else {
         document.getElementById("message").innerText = result.detail || "회원가입 실패";
       }

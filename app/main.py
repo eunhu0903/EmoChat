@@ -12,7 +12,8 @@ from api.profile import profile, update
 from api.home import search
 from api.block import block
 from db.session import Base, engine
-
+from views.auth import views_auth
+from views.home import views_home
 
 Base.metadata.create_all(bind=engine)
 
@@ -59,3 +60,6 @@ app.include_router(report.router)
 
 # Block
 app.include_router(block.router)
+
+app.include_router(views_auth.router)
+app.include_router(views_home.router)

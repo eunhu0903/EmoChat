@@ -4,65 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>EmoChat | 홈</title>
+  <link rel="stylesheet" href="/static/css/home.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-    }
-
-    #emotionChart {
-      display: block;
-      margin: 20px 0;
-      background-color: #fafafa;
-      border: 1px solid #ccc;
-      padding: 10px;
-      border-radius: 10px;
-      width: 500px !important;
-      height: 250px !important;
-    }
-
-    #emotion-modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 999;
-    }
-
-    #emotion-modal-content {
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      width: 300px;
-      margin: 150px auto;
-      text-align: center;
-    }
-
-    .emotion-button {
-      margin: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-      border: none;
-      background-color: #eee;
-      cursor: pointer;
-      border-radius: 6px;
-    }
-
-    .emotion-button:hover {
-      background-color: #ddd;
-    }
-  </style>
 </head>
 <body>
   <h2>메인페이지</h2>
   <p id="user-info"></p>
 
-  <!-- 로그아웃 버튼 -->
   <button id="logout-btn" type="button">로그아웃</button>
 
-  <!-- 감정 모달 -->
   <div id="emotion-modal">
     <div id="emotion-modal-content">
       <p>오늘의 기분을 선택해주세요!</p>
@@ -72,176 +22,20 @@
     </div>
   </div>
 
-  <!-- 친구 검색 -->
-  <div style="margin-top: 30px;">
+  <div class="search-box">
     <label for="search-input">친구 검색: </label>
     <input type="text" id="search-input" placeholder="닉네임 입력" />
     <button id="search-btn">검색</button>
-    <ul id="search-results" style="margin-top:10px; list-style:none; padding-left:0;"></ul>
+    <ul id="search-results"></ul>
   </div>
 
-  <!-- 감정 차트 -->
   <canvas id="emotionChart" width="500" height="250"></canvas>
 
-  <script>
-    // 로그아웃
-    document.getElementById("logout-btn").addEventListener("click", function () {
-      localStorage.removeItem("access_token");
-      alert("로그아웃 되었습니다.");
-      window.location.href = "/login";
-    });
-
-    // 페이지 초기화 및 데이터 로드
-    (async () => {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        window.location.href = "/login";
-        return;
-      }
-
-      try {
-        // 사용자 정보 가져오기
-        const userRes = await fetch("http://127.0.0.1:8000/", {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!userRes.ok) throw new Error("사용자 정보를 불러오는 중 오류");
-
-        const userData = await userRes.json();
-        document.getElementById("user-info").innerText = userData.message;
-
-        // 감정 차트 그리기
-        const emotions = ["기쁨", "슬픔", "분노"];
-        const topEmotions = userData.top_emotions_today || [];
-
-        const emotionCounts = emotions.map(emotion => {
-          const found = topEmotions.find(e => e.emotion === emotion);
-          return found ? found.count : 0;
-        });
-
-        const ctx = document.getElementById("emotionChart").getContext("2d");
-        new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: emotions,
-            datasets: [{
-              label: '감정 수',
-              data: emotionCounts,
-              backgroundColor: ['#f39c12', '#3498db', '#e74c3c'],
-              borderRadius: 6,
-              borderSkipped: false
-            }]
-          },
-          options: {
-            responsive: false,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: context => `${context.label}: ${context.raw}개`
-                }
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: { stepSize: 1, font: { size: 12 } },
-                grid: { color: "#eee" }
-              },
-              x: {
-                barPercentage: 0.5,
-                categoryPercentage: 0.6,
-                ticks: { font: { size: 14 } },
-                grid: { display: false }
-              }
-            }
-          }
-        });
-
-        // 서버에 오늘 감정 선택 여부 확인 요청
-        const checkRes = await fetch("http://127.0.0.1:8000/emotion/today", {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (!checkRes.ok) throw new Error("오늘 감정 선택 여부 확인 실패");
-
-        const checkData = await checkRes.json();
-
-        if (!checkData.selected) {
-          // 오늘 감정을 아직 선택 안 했으면 모달 보여줌
-          document.getElementById("emotion-modal").style.display = "block";
-        } else {
-          // 이미 선택했으면 모달 숨김
-          document.getElementById("emotion-modal").style.display = "none";
-        }
-
-      } catch (err) {
-        alert("사용자 정보를 불러오는 중 오류 발생");
-        localStorage.removeItem("access_token");
-        window.location.href = "/login";
-      }
-    })();
-
-    // 감정 선택 처리
-    document.querySelectorAll(".emotion-button").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const mood = btn.dataset.emotion;
-        const token = localStorage.getItem("access_token");
-
-        try {
-          const res = await fetch("http://127.0.0.1:8000/emotion", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({ mood })
-          });
-
-          if (!res.ok) {
-            const err = await res.json();
-            alert(err.detail || "감정 저장 실패");
-            return;
-          }
-
-          // 성공 시 모달 닫기
-          document.getElementById("emotion-modal").style.display = "none";
-
-        } catch {
-          alert("감정 저장 중 오류 발생");
-        }
-      });
-    });
-
-    // 친구 검색
-    document.getElementById("search-btn").addEventListener("click", async () => {
-      const query = document.getElementById("search-input").value.trim();
-      const resultsUI = document.getElementById("search-results");
-      resultsUI.innerHTML = "";
-
-      if (!query) return;
-
-      try {
-        const res = await fetch(`http://127.0.0.1:8000/users/search?q=${encodeURIComponent(query)}`);
-        if (!res.ok) throw new Error("검색 실패");
-
-        const users = await res.json();
-        if (users.length === 0) {
-          resultsUI.innerHTML = "<li>검색 결과가 없습니다.</li>";
-          return;
-        }
-
-        users.forEach(user => {
-          const li = document.createElement("li");
-          li.textContent = user.username;
-          resultsUI.appendChild(li);
-        });
-      } catch {
-        resultsUI.innerHTML = "<li>검색 중 오류가 발생했습니다.</li>";
-      }
-    });
-  </script>
+  <script src="/static/js/token/token.js"></script>
+  <script src="/static/js/auth/logout.js"></script>
+  <script src="/static/js/home/welcome.js"></script>
+  <script src="/static/js/home/emotion.js"></script>
+  <script src="/static/js/home/chart.js"></script>
+  <script src="/static/js/home/search.js"></script>
 </body>
 </html>

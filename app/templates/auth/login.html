@@ -29,7 +29,7 @@
       if (response.ok) {
         const result = await response.json();
         localStorage.setItem("access_token", result.access_token);
-        window.location.href = "/";
+        window.location.href = "/home";
       } else {
         // 에러 메시지는 백엔드에서 JSON으로 내려주니까 그냥 alert로만 표시
         const err = await response.json();

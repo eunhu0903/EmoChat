@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, date
@@ -15,7 +15,7 @@ def home(authorization: str = Depends(get_token_from_header), db: Session = Depe
 
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        return {"message": "유저를 찾을 수 없습니다."}
+        raise HTTPException(status_code=401, detail="유저를 찾을 수 없습니다.")
     
     today_start = datetime.combine(date.today(), datetime.min.time())
 

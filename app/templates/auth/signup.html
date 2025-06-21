@@ -1,23 +1,21 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EmoChat | 회원가입</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EmoChat | 회원가입</title>
 </head>
 <body>
-    <h2>회원가입</h2>
-    <form id="signup-form">
-        <input type="text" id="username" placeholder="닉네임" required> <br>
-        <input type="email" id="email" placeholder="이메일" required> <br>
-        <input type="password" id="password" placeholder="비밀번호" required> <br>
-        <button type="submit">회원가입</button>
-    </form>
+  <h2>회원가입</h2>
+  <form id="signup-form">
+    <input type="text" id="username" placeholder="닉네임" required /><br />
+    <input type="email" id="email" placeholder="이메일" required /><br />
+    <input type="password" id="password" placeholder="비밀번호" required /><br />
+    <button type="submit">회원가입</button>
+  </form>
 
-    <p id="message" style="color:red;"></p>
-    
-    <script>
-        document.getElementById("signup-form").addEventListener("submit", async function (e) {
+  <script>
+    document.getElementById("signup-form").addEventListener("submit", async function (e) {
       e.preventDefault();
 
       const username = document.getElementById("username").value;
@@ -27,17 +25,16 @@
       const response = await fetch("http://127.0.0.1:8000/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password })
+        body: JSON.stringify({ username, email, password }),
       });
 
-      const result = await response.json();
       if (response.ok) {
         window.location.href = "/login";
-       
       } else {
-        document.getElementById("message").innerText = result.detail || "회원가입 실패";
+        const err = await response.json();
+        alert(err.detail || "회원가입 실패");
       }
     });
-    </script>
+  </script>
 </body>
 </html>

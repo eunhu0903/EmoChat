@@ -1,0 +1,55 @@
+#emotion-calendar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: calc(7 * 36px); /* 7칸 * (30px + 6px 여유) */
+    max-width: calc(7 * 36px);
+    margin: 0;        /* 상하좌우 여백 제거 */
+    padding: 0;       /* 안쪽 여백 제거 */
+    justify-content: flex-start; /* 왼쪽 정렬 */
+    text-align: left;  /* 컨테이너 내 텍스트 정렬 */
+  }
+    
+  .day-cell {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    text-align: center;
+    line-height: 30px;
+    font-size: 12px;
+    color: #444;
+    user-select: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: default;
+    transition: transform 0.2s ease;
+  }
+  
+  .day-cell:hover {
+    transform: scale(1.2);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  
+  /* 감정별 배경색 */
+  .emotion-기쁨 {
+    background-color: #f39c12;
+    color: #5d4037;
+    font-weight: bold;
+  }
+  
+  .emotion-슬픔 {
+    background-color: #3498db;
+    color: white;
+    font-weight: bold;
+  }
+  
+  .emotion-분노 {
+    background-color: #e74c3c;
+    color: white;
+    font-weight: bold;
+  }
+  
+  .no-emotion {
+    background-color: #eee;
+    color: #aaa;
+  }
+  

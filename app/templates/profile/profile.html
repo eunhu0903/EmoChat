@@ -11,14 +11,54 @@
     <p id="user-info"></p>
 
     <button id="home-btn" type="button">메인</button>
+    <button id="settings-btn" type="button">설정</button>
 
     <h3>최근 30일간 감정 기록</h3>
     <div id="emotion-calendar">
 
     </div>
 
+    <div id="settings-modal">
+        <div id="settings-modal-content">
+            <h3>설정</h3>
+
+            <div>
+                <label for="username-input">유저네임 변경 : </label>
+                <input type="text" id="username-input" placeholder="새 유저네임" />
+                <button id="change-username-btn">변경</button>
+            </div>
+
+            <div>
+                <label for="current-password">현재 비밀번호 :</label>
+                <input type="password" id="current-password" placeholder="현재 비밀번호" />
+
+                <label for="new-password">새 비밀번호 :</label>
+                <input type="password" id="new-password" placeholder="새 비밀번호" />
+
+                <label for="confirm-password">새 비밀번호 확인 :</label>
+                <input type="password" id="confirm-password" placeholder="새 비밀번호 확인" />
+
+                <button id="change-password-btn">변경</button>
+            </div>
+
+            <div>
+                <p style="color: red;">계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+                <button id="delete-account-btn" style="background-color: red; color: white;">계정 삭제</button>
+            </div>
+
+            <button id="close-settings-btn">닫기</button>
+        </div>
+    </div>
+    
+
     <script src="/static/js/token/token.js"></script>
     <script src="/static/js/navigate/navigate.js"></script>
     <script src="/static/js/profile/profile.js"></script>
+    <script src="/static/js/settings/modal.js"></script>
+    <script src="/static/js/settings/change_username.js"></script>
+    <script src="/static/js/settings/change_password.js"></script>
+    <script src="/static/js/settings/user_delete.js"></script>
+    <script src="/static/js/settings/modal.js"></script>
+
 </body>
 </html>

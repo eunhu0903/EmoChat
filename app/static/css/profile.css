@@ -53,3 +53,63 @@
     color: #aaa;
   }
   
+  /* 모달 배경 */
+#settings-modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4); /* 어두운 반투명 배경 */
+}
+
+/* 모달 내용 */
+#settings-modal-content {
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 30px 20px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* 각 영역 구분 */
+#settings-modal-content div {
+  margin-bottom: 20px;
+}
+
+/* 입력 필드 */
+#settings-modal-content input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+/* 버튼 공통 스타일 */
+#settings-modal-content button {
+  margin-top: 10px;
+  padding: 10px;
+  width: 100%;
+  border: none;
+  background-color: #3498db;
+  color: white;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#settings-modal-content button:hover {
+  background-color: #2980b9;
+}
+
+/* 계정 삭제 버튼만 빨간색 */
+#delete-account-btn {
+  background-color: red;
+  color: white;
+}

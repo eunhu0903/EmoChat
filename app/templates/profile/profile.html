@@ -13,6 +13,11 @@
     <button id="home-btn" type="button">메인</button>
     <button id="settings-btn" type="button">설정</button>
 
+    <div>
+        <button id="follower-btn" type="button">팔로워</button>
+        <button id="following-btn" type="button">팔로잉</button>
+    </div>
+
     <h3>최근 30일간 감정 기록</h3>
     <div id="emotion-calendar">
 
@@ -45,11 +50,33 @@
             <button id="close-settings-btn">닫기</button>
         </div>
     </div>
+
+    <div id="follower-modal">
+        <div id="follower-modal-content">
+            <h3>팔로워 목록</h3>
+            <ul id="follower-list">
+
+            </ul>
+            <button id="close-follower-modal">닫기</button>
+        </div>
+    </div>
+
+    <div id="following-modal">
+        <div id="following-modal-content">
+            <h3>팔로잉 목록</h3>
+            <ul id="following-list">
+
+            </ul>
+            <button id="close-following-modal">닫기</button>
+        </div>
+    </div>
     
 
     <script src="/static/js/token/token.js"></script>
     <script src="/static/js/navigate/navigate.js"></script>
     <script src="/static/js/profile/profile.js"></script>
+    <script src="/static/js/follow/modal.js"></script>
+    <script src="/static/js/follow/follow.js"></script>
     <script src="/static/js/settings/modal.js"></script>
     <script src="/static/js/settings/change_username.js"></script>
     <script src="/static/js/settings/change_password.js"></script>

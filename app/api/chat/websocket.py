@@ -6,12 +6,19 @@ from core.token import verify_token
 from models.auth import User
 from models.report import Report
 from models.emotion import Emotion
+import random
 
 router = APIRouter()
 
-waiting_users: Dict[str, List[Tuple[str, WebSocket]]] = {}
-
+waiting_users: Dict[str, List[Tuple[str, WebSocket, str]]] = {}  # (email, websocket, nickname)
 active_pairs: Dict[WebSocket, WebSocket] = {}
+nicknames: Dict[WebSocket, str] = {}
+
+adjectives = ["행복한", "귀여운", "수줍은", "익명의", "배고픈", "용감한", "무서운", "재밌는", "우울한", "따뜻한"]
+animals = ["토끼", "고양이", "강아지", "펭귄", "여우", "곰", "다람쥐", "고슴도치", "호랑이", "늑대"]
+
+def generate_random_name():
+    return f"{random.choice(adjectives)}{random.choice(animals)}{random.randint(1, 999)}"
 
 @router.websocket("/ws/match")
 async def websocket_match(
@@ -42,6 +49,8 @@ async def websocket_match(
         return
 
     mood = recent_emotion.mood
+    nickname = generate_random_name()
+    nicknames[websocket] = nickname 
 
     reported_ids = db.query(Report.reported_id).filter(Report.reporter_id == user.id).all()
     reported_by_ids = db.query(Report.reporter_id).filter(Report.reported_id == user.id).all()
@@ -53,7 +62,7 @@ async def websocket_match(
         waiting_users[mood] = []
 
     matched = False
-    for idx, (other_email, other_ws) in enumerate(waiting_users[mood]):
+    for idx, (other_email, other_ws, other_nick) in enumerate(waiting_users[mood]):
         other_user = db.query(User).filter(User.email == other_email).first()
         if other_user and other_user.id not in blocked_ids and user.id not in (
             db.query(Report.reported_id).filter(Report.reporter_id == other_user.id).all()
@@ -61,14 +70,16 @@ async def websocket_match(
             del waiting_users[mood][idx]
             active_pairs[websocket] = other_ws
             active_pairs[other_ws] = websocket
-            await other_ws.send_text("✅ 매칭되었습니다.")
-            await websocket.send_text("✅ 매칭되었습니다.")
+            nicknames[other_ws] = other_nick
+
+            await websocket.send_text(f"✅ 매칭되었습니다. 당신의 이름은 '{nickname}'입니다.")
+            await other_ws.send_text(f"✅ 매칭되었습니다. 당신의 이름은 '{other_nick}'입니다.")
             matched = True
             break
 
     if not matched:
-        waiting_users[mood].append((email, websocket))
-        await websocket.send_text("⌛ 매칭 대기 중입니다...")
+        waiting_users[mood].append((email, websocket, nickname))
+        await websocket.send_text(f"⌛ 매칭 대기 중입니다...\n당신의 이름은 '{nickname}'입니다.")
 
     try:
         while True:
@@ -79,7 +90,8 @@ async def websocket_match(
                 break
 
             if websocket in active_pairs:
-                await active_pairs[websocket].send_text(f"{user.username}: {data}")
+                partner = active_pairs[websocket]
+                await partner.send_text(f"{nicknames[websocket]}: {data}")
 
     except WebSocketDisconnect:
         pass
@@ -87,9 +99,11 @@ async def websocket_match(
         if websocket in active_pairs:
             partner = active_pairs.pop(websocket)
             active_pairs.pop(partner, None)
+            nicknames.pop(partner, None)
             await partner.close()
         else:
             if mood in waiting_users:
                 waiting_users[mood] = [
-                    (e, ws) for (e, ws) in waiting_users[mood] if ws != websocket
+                    (e, ws, n) for (e, ws, n) in waiting_users[mood] if ws != websocket
                 ]
+        nicknames.pop(websocket, None)

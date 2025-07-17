@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from db.session import get_db
 from core.token import verify_token, get_token_from_header
 from models.auth import User
@@ -9,6 +10,7 @@ from models.emotion import Emotion
 from schemas.emotion import EmotionCreate, EmotionResponse
 
 router = APIRouter()
+KST = ZoneInfo("Asia/Seoul")
 
 @router.post("/emotion", status_code=201, tags=["Emotion"])
 def select_emotion(emotion: EmotionCreate, token: str = Depends(get_token_from_header), db: Session = Depends(get_db)):
@@ -18,7 +20,7 @@ def select_emotion(emotion: EmotionCreate, token: str = Depends(get_token_from_h
     if emotion.mood not in ["기쁨", "슬픔", "분노"]:
         raise HTTPException(status_code=400, detail="올바르지 않은 감정입니다.")
     
-    now_kst = datetime.utcnow() + timedelta(hours=9)
+    now_kst = datetime.now(KST)
     start_of_today = datetime(now_kst.year, now_kst.month, now_kst.day)
     start_of_tomorrow = start_of_today + timedelta(days=1)
 
@@ -67,7 +69,7 @@ def check_today_emotion(token: str = Depends(get_token_from_header), db: Session
     if not user:
         raise HTTPException(status_code=404, detail="사용자 없음")
 
-    now_kst = datetime.utcnow() + timedelta(hours=9)
+    now_kst = datetime.now(KST)
     start_of_today = datetime(now_kst.year, now_kst.month, now_kst.day)
     start_of_tomorrow = start_of_today + timedelta(days=1)
 

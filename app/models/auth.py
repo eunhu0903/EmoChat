@@ -13,3 +13,5 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
 
     emotions = relationship("Emotion", back_populates="user")
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete")
+

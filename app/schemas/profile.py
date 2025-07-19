@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import List
 
 class EmotionLog(BaseModel):
@@ -13,7 +13,7 @@ class UsernameUpdate(BaseModel):
     new_username: str
 
 class PasswordChangeRequest(BaseModel):
-    current_password: str
+    email: EmailStr
     new_password: str
     confirm_password: str
 

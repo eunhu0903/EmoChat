@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from core.security import create_access_token, verify_password, get_password_hash, create_refresh_token, decode_refresh_token
 from db.session import get_db
 from models.auth import User
+from models.email_verification import EmailVerification
 from schemas.auth import UserCreate, Token, UserResponse, UserLogin
 from models.token import RefreshToken
 from core.config import REFRESH_TOKEN_EXPIRE_DAYS
@@ -11,6 +12,14 @@ router = APIRouter()
 
 @router.post("/signup", response_model=UserResponse, tags=["Auth"])
 def signup(user: UserCreate, db: Session = Depends(get_db)):
+
+    verification = db.query(EmailVerification).filter(
+        EmailVerification.email == user.email,
+        EmailVerification.is_verified == True
+    ).first()
+
+    if not verification:
+        raise HTTPException(status_code=400, detail="이메일 인증이 완료되지 않았습니다.")
 
     existing_username = db.query(User).filter(User.username == user.username).first()
     if existing_username:
@@ -25,6 +34,10 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    db.delete(verification)
+    db.commit()
+    
     return new_user
 
 @router.post("/login", response_model=Token, tags=["Auth"])

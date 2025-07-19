@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from api.admin import user_management, user_status, role
-from api.auth import auth
+from api.auth import auth, email_verification
 from api.home import home
 from api.emotion import emotion
 from api.follow import follow
@@ -38,6 +38,7 @@ app.include_router(role.router)
 
 # Auth
 app.include_router(auth.router)
+app.include_router(email_verification.router)
 
 # Chat
 app.include_router(websocket.router)

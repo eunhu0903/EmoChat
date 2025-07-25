@@ -3,13 +3,6 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from db.session import Base
 
-class MatchingQueue(Base):
-    __tablename__ = "matching_queue"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
 class Matching(Base):
     __tablename__ = "matching"
 

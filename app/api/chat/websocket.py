@@ -126,8 +126,16 @@ async def websocket_match(
             elif data == "__exit__":
                 partner = match_manager.active_pairs.get(websocket)
                 if partner:
+                    await websocket.send_text("✅ 채팅을 종료했습니다.")
                     await partner.send_text("❌ 상대방이 채팅을 종료했습니다.")
-                await websocket.close()
+
+                    await partner.close(code=1000)
+                    await websocket.close(code=1000)
+
+                    match_manager.active_pairs.pop(partner, None)
+                    match_manager.active_pairs.pop(websocket, None)
+                else:
+                    await websocket.close(code=1000)
                 break
 
             elif websocket in match_manager.active_pairs:

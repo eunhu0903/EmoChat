@@ -6,7 +6,6 @@ from api.auth import auth, email_verification
 from api.home import home
 from api.emotion import emotion
 from api.follow import follow
-from api.match import matching
 from api.chat import websocket
 from api.report import report
 from api.profile import profile, update
@@ -52,9 +51,6 @@ app.include_router(follow.router)
 # Home
 app.include_router(home.router)
 app.include_router(search.router)
-
-# Match
-app.include_router(matching.router)
 
 # Profile
 app.include_router(profile.router)

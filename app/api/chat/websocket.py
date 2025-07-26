@@ -8,6 +8,7 @@ from models.auth import User
 from models.report import Report
 from models.emotion import Emotion
 from models.matching import Matching
+from models.chat import ChatMessage
 from datetime import datetime
 
 router = APIRouter()
@@ -29,8 +30,9 @@ class MatchManager:
         self.waiting_users: Dict[str, List[Tuple[str, WebSocket, str]]] = {}
         self.active_pairs: Dict[WebSocket, WebSocket] = {}
         self.nicknames: Dict[WebSocket, str] = {}
+        self.match_ids: Dict[WebSocket, int] = {}
 
-    async def match(self, mood: str, websocket: WebSocket, user: User, nickname: str, db: Session) -> bool:
+    async def match(self, mood: str, websocket: WebSocket, user: User, nickname: str, db: Session) -> Tuple[bool, int | None]:
         if mood not in self.waiting_users:
             self.waiting_users[mood] = []
 
@@ -49,14 +51,19 @@ class MatchManager:
                 db.add(match)
                 db.commit()
 
+                if not hasattr(self, "match_ids"):
+                    self.match_ids = {}
+                self.match_ids[websocket] = match.id
+                self.match_ids[other_ws] = match.id
+
                 await websocket.send_text(f"✅ 매칭되었습니다. 당신의 이름은 '{nickname}'입니다.")
                 await other_ws.send_text(f"✅ 매칭되었습니다. 당신의 이름은 '{other_nick}'입니다.")
-                return True
+                return True, match.id
 
         self.waiting_users[mood].append((user.email, websocket, nickname))
         self.nicknames[websocket] = nickname
         await websocket.send_text(f"⌛ 매칭 대기 중입니다...\n당신의 이름은 '{nickname}'입니다.")
-        return False
+        return False, None
 
     async def cleanup(self, websocket: WebSocket, mood: str):
         if websocket in self.active_pairs:
@@ -64,11 +71,13 @@ class MatchManager:
             self.active_pairs.pop(partner, None)
             await partner.close()
             self.nicknames.pop(partner, None)
+            self.match_ids.pop(partner, None)
         else:
             self.waiting_users[mood] = [
                 (e, ws, n) for (e, ws, n) in self.waiting_users.get(mood, []) if ws != websocket
             ]
         self.nicknames.pop(websocket, None)
+        self.match_ids.pop(websocket, None)
 
 match_manager = MatchManager()
 
@@ -91,6 +100,7 @@ async def websocket_match(
         .first()
     )
     if not recent_emotion:
+        await websocket.accept()
         await websocket.send_text("❌ 감정을 먼저 선택하세요.")
         await websocket.close(code=4403)
         return
@@ -99,7 +109,9 @@ async def websocket_match(
     nickname = generate_random_name()
 
     await websocket.accept()
-    await match_manager.match(mood, websocket, user, nickname, db)
+    matched, _ = await match_manager.match(mood, websocket, user, nickname, db)
+
+    match_id = match_manager.match_ids.get(websocket)
 
     try:
         while True:
@@ -108,21 +120,44 @@ async def websocket_match(
             if data == "__cancel__":
                 if websocket not in match_manager.active_pairs:
                     await websocket.send_text("❌ 매칭이 취소되었습니다.")
-                    await websocket.close
+                    await websocket.close()
                     break
 
-            if data == "__exit__":
-                if websocket in match_manager.active_pairs:
-                    partner = match_manager.active_pairs[websocket]
+            elif data == "__exit__":
+                partner = match_manager.active_pairs.get(websocket)
+                if partner:
                     await partner.send_text("❌ 상대방이 채팅을 종료했습니다.")
                 await websocket.close()
                 break
 
-            if websocket in match_manager.active_pairs:
+            elif websocket in match_manager.active_pairs:
                 partner = match_manager.active_pairs[websocket]
+                current_match_id = match_manager.match_ids.get(websocket)
+
+                if current_match_id:
+                    db.add(ChatMessage(
+                        match_id=current_match_id,
+                        sender_id=user.id,
+                        content=data,
+                        created_at=datetime.utcnow()
+                    ))
+                    db.commit()
+
                 await partner.send_text(f"{match_manager.nicknames[websocket]}: {data}")
 
     except WebSocketDisconnect:
         pass
+
     finally:
         await match_manager.cleanup(websocket, mood)
+
+        if match_id:
+            match = db.query(Matching).filter(Matching.id == match_id).first()
+            if match:
+                is_reported = db.query(Report).filter(
+                    ((Report.reporter_id == match.user1_id) & (Report.reported_id == match.user2_id)) |
+                    ((Report.reporter_id == match.user2_id) & (Report.reported_id == match.user1_id))
+                ).first()
+                if not is_reported:
+                    db.query(ChatMessage).filter(ChatMessage.match_id == match_id).delete()
+                    db.commit()

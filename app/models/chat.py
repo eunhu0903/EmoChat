@@ -11,5 +11,6 @@ class ChatMessage(Base):
     sender_id = Column(Integer, ForeignKey("users.id"))
     content = Column(String(1000), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    keep_log = Column(Boolean, default=False)
 
     sender = relationship("User", backref="sent_messages")

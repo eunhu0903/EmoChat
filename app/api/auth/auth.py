@@ -1,6 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from jose.exceptions import ExpiredSignatureError, JWTError
 from sqlalchemy.orm import Session
-from core.security import create_access_token, verify_password, get_password_hash, create_refresh_token, decode_refresh_token
+from sqlalchemy import or_
+from core.security import (
+    create_access_token, 
+    verify_password, 
+    get_password_hash, 
+    create_refresh_token, 
+    decode_refresh_token
+)
 from db.session import get_db
 from models.auth import User
 from models.email_verification import EmailVerification
@@ -9,6 +17,16 @@ from models.token import RefreshToken
 from core.config import REFRESH_TOKEN_EXPIRE_DAYS
 
 router = APIRouter()
+
+def set_refresh_token_cookie(response: Response, token: str):
+    response.set_cookie(
+        key="refresh_token",
+        value=token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 86400
+    )
 
 @router.post("/signup", response_model=UserResponse, tags=["Auth"])
 def signup(user: UserCreate, db: Session = Depends(get_db)):
@@ -20,23 +38,23 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
 
     if not verification:
         raise HTTPException(status_code=400, detail="이메일 인증이 완료되지 않았습니다.")
-
-    existing_username = db.query(User).filter(User.username == user.username).first()
-    if existing_username:
-        raise HTTPException(status_code=400, detail="이미 등록된 닉네임 입니다.")
     
-    existing_email = db.query(User).filter(User.email == user.email).first()
-    if existing_email:
-        raise HTTPException(status_code=400, detail="이미 등록된 이메일 입니다.")
+    existing_user = db.query(User).filter(
+        or_(User.username == user.username, User.email == user.email)
+    ).first()
+
+    if existing_user:
+        if existing_user.username == user.username:
+            raise HTTPException(status_code=400, detail="이미 등록된 닉네임 입니다.")
+        else:
+            raise HTTPException(status_code=400, detail="이미 등록된 이메일 입니다.")
     
     hashed_password = get_password_hash(user.password)
     new_user = User(email=user.email, hashed_password=hashed_password, username=user.username)
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
     db.delete(verification)
     db.commit()
+    db.refresh(new_user)
     
     return new_user
 
@@ -56,14 +74,7 @@ def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
     db.add(RefreshToken(user_id=db_user.id, token=refresh_token))
     db.commit()
 
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 86400
-    )
+    set_refresh_token_cookie(response, refresh_token)
 
     return {"access_token": access_token, "token_type": "Bearer"}
 
@@ -80,10 +91,14 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
     try:
         payload = decode_refresh_token(token)
         email = payload.get("sub")
-    except:
+    except ExpiredSignatureError:
         db.delete(db_token)
         db.commit()
-        raise HTTPException(status_code=401, detail="토큰 검증을 실패했습니다.")
+        raise HTTPException(status_code=401, detail="토큰이 만료되었습니다.")
+    except JWTError:
+        db.delete(db_token)
+        db.commit()
+        raise HTTPException(status_code=401, detail="토큰 검증에 실패했습니다.")
     
     user = db.query(User).filter(User.email == email).first()
     if not user:
@@ -96,14 +111,7 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
     db.add(RefreshToken(user_id=user.id, token=new_refresh))
     db.commit()
 
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 86400
-    )
+    set_refresh_token_cookie(response, new_refresh)
 
     return {"access_token": new_access, "token_type": "Bearer"}
 

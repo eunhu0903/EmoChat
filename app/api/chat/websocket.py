@@ -4,12 +4,14 @@ from typing import Dict, List, Tuple
 from db.session import get_db
 from core.token import verify_token
 from core.nickname import generate_random_name
+from api.chat.chat_cleanup import delete_chat_after_timeout, deletion_tasks
 from models.auth import User
 from models.report import Report
 from models.emotion import Emotion
 from models.matching import Matching
 from models.chat import ChatMessage
 from datetime import datetime
+import asyncio
 
 router = APIRouter()
 
@@ -125,18 +127,35 @@ async def websocket_match(
 
             elif data == "__exit__":
                 partner = match_manager.active_pairs.get(websocket)
+                
                 if partner:
-                    await websocket.send_text("✅ 채팅을 종료했습니다.")
-                    await partner.send_text("❌ 상대방이 채팅을 종료했습니다.")
-
-                    await partner.close(code=1000)
-                    await websocket.close(code=1000)
-
-                    match_manager.active_pairs.pop(partner, None)
+                    # 상대방에게 메시지 보내기 시도 (닫혔으면 무시)
+                    try:
+                        await partner.send_text("❌ 상대방이 채팅을 종료했습니다.")
+                    except Exception:
+                        pass
+                    
+                    # 상대방 소켓 닫기 시도 (닫혔으면 무시)
+                    try:
+                        await partner.close()
+                    except Exception:
+                        pass
+                    
+                    # 매칭 해제
                     match_manager.active_pairs.pop(websocket, None)
-                else:
-                    await websocket.close(code=1000)
+                    match_manager.active_pairs.pop(partner, None)
+                    match_manager.nicknames.pop(partner, None)
+                    match_manager.nicknames.pop(websocket, None)
+                
+                # 현재 웹소켓 닫기 시도 (닫혔으면 무시)
+                try:
+                    await websocket.close()
+                except Exception:
+                    pass
+
                 break
+
+
 
             elif websocket in match_manager.active_pairs:
                 partner = match_manager.active_pairs[websocket]
@@ -160,12 +179,8 @@ async def websocket_match(
         await match_manager.cleanup(websocket, mood)
 
         if match_id:
-            match = db.query(Matching).filter(Matching.id == match_id).first()
-            if match:
-                is_reported = db.query(Report).filter(
-                    ((Report.reporter_id == match.user1_id) & (Report.reported_id == match.user2_id)) |
-                    ((Report.reporter_id == match.user2_id) & (Report.reported_id == match.user1_id))
-                ).first()
-                if not is_reported:
-                    db.query(ChatMessage).filter(ChatMessage.match_id == match_id).delete()
-                    db.commit()
+            if match_id in deletion_tasks:
+                deletion_tasks[match_id].cancel()
+                
+            deletion_tasks[match_id] = asyncio.create_task(delete_chat_after_timeout(db, match_id, 300))
+            

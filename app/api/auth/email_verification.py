@@ -5,31 +5,33 @@ from models.email_verification import EmailVerification
 from schemas.email_verification import EmailRequest, CodeVerifyRequest
 from core.send_email import send_verification_email
 from datetime import datetime, timedelta
-import random
+import secrets
 
 router = APIRouter()
+CODE_EXPIRY_MINUTES = 5
+
+def generate_verification_code() -> str:
+    return "".join([str(secrets.randbelow(10)) for _ in range(6)])
 
 @router.post("/send-code")
 def send_code(payload: EmailRequest, db: Session = Depends(get_db)):
-    existing = db.query(EmailVerification).filter(EmailVerification.email == payload.email).first()
+    code = generate_verification_code()
+    expires_at = datetime.utcnow() + timedelta(minutes=CODE_EXPIRY_MINUTES)
 
-    code = f"{random.randint(100000, 999999)}"
-    expires_at = datetime.utcnow() + timedelta(minutes=5)
-
-    if existing:
-        existing.code = code
-        existing.expires_at = expires_at
-        existing.is_verified = False
+    entry = db.query(EmailVerification).filter(EmailVerification.email == payload.email).first()
+    if entry:
+        entry.code = code
+        entry.expires_at = expires_at
+        entry.is_verified = False
     else:
-        new_entry = EmailVerification(
-            email=payload.email,
-            code=code,
-            expires_at=expires_at
-        )
-        db.add(new_entry)
+        db.add(EmailVerification(email=payload.email, code=code, expires_at=expires_at))
     db.commit()
 
-    send_verification_email(payload.email, code)
+    try:
+        send_verification_email(payload.email, code)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"이메일 전송 실패: {str(e)}")
+    
     return {"message": "인증 코드가 전송되었습니다."}
 
 @router.post("/verify-code")

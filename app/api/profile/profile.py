@@ -10,16 +10,18 @@ from schemas.profile import ProfileResponse
 router = APIRouter()
 
 @router.get("/profile", response_model=ProfileResponse, tags=["Profile"])
-def get_my_profile(token: str = Depends(get_token_from_header), db: Session = Depends(get_db)):
-    email = verify_token(token, db)
+def get_my_profile(authorization: str = Depends(get_token_from_header), db: Session = Depends(get_db)):
+    email = verify_token(authorization, db)
     user = db.query(User).filter(User.email == email).first()
 
     if not user:
         raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    now = datetime.utcnow()
+    thirty_days_ago = now - timedelta(days=30)
+
     emotion_logs = (
-        db.query(Emotion)
+        db.query(Emotion.created_at, Emotion.mood)
         .filter(Emotion.user_id == user.id, Emotion.created_at >= thirty_days_ago)
         .order_by(Emotion.created_at.desc())
         .all()
@@ -27,10 +29,10 @@ def get_my_profile(token: str = Depends(get_token_from_header), db: Session = De
 
     emotion_data = [
         {
-            "date": emotion.created_at.date().isoformat(),
-            "mood": emotion.mood,
+            "date": created_at.date().isoformat(),
+            "mood": mood,
         }
-        for emotion in emotion_logs
+        for created_at, mood in emotion_logs
     ]
 
     return {

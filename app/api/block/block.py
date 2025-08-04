@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from db.session import get_db
 from core.token import verify_token, get_token_from_header
-from models.auth import User
-from models.block import Block
-from schemas.block import BlockCreate, BlockUser
+from models.auth.auth import User
+from models.block.block import Block
+from schemas.block.block import BlockCreate, BlockUser
 from datetime import datetime
 
 router = APIRouter()

@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status, Header
 from datetime import datetime
 from sqlalchemy.orm import Session
-from models.auth import User
+from models.auth.auth import User
 from core.security import decode_access_token
 
 def get_token_from_header(authorization: str = Header(None)) -> str:

@@ -1,6 +1,6 @@
 import asyncio
 from sqlalchemy.orm import Session
-from models.chat import ChatMessage
+from models.chat.chat import ChatMessage
 
 deletion_tasks = {}
 

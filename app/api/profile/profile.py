@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from db.session import get_db
 from core.token import verify_token, get_token_from_header
-from models.auth import User
-from models.emotion import Emotion
-from schemas.profile import ProfileResponse
+from models.auth.auth import User
+from models.emotion.emotion import Emotion
+from schemas.profile.profile import ProfileResponse
 
 router = APIRouter()
 

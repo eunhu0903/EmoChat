@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from db.session import get_db
 from core.token import verify_token, get_token_from_header
-from models.auth import User
-from models.emotion import Emotion
-from schemas.emotion import EmotionCreate, EmotionResponse
+from models.auth.auth import User
+from models.emotion.emotion import Emotion
+from schemas.emotion.emotion import EmotionCreate, EmotionResponse
 
 router = APIRouter()
 KST = ZoneInfo("Asia/Seoul")

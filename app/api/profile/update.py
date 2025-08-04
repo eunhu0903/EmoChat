@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from db.session import get_db
 from core.token import verify_token, get_token_from_header
 from core.security import verify_password, get_password_hash
-from models.auth import User
-from models.email_verification import EmailVerification
-from schemas.profile import UsernameUpdate, PasswordChangeRequest, DeleteAccountRequest
+from models.auth.auth import User
+from models.auth.email_verification import EmailVerification
+from schemas.profile.profile import UsernameUpdate, PasswordChangeRequest, DeleteAccountRequest
 
 router = APIRouter()
 

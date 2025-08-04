@@ -3,10 +3,10 @@ from sqlalchemy.orm import Session
 from db.session import get_db
 from core.token import verify_token, get_token_from_header
 from api.chat import websocket
-from models.auth import User
-from models.report import Report
-from models.chat import ChatMessage
-from schemas.report import ReportCreate
+from models.auth.auth import User
+from models.report.report import Report
+from models.chat.chat import ChatMessage
+from schemas.report.report import ReportCreate
 from datetime import datetime
 
 router = APIRouter()

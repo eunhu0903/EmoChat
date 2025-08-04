@@ -5,11 +5,11 @@ from db.session import get_db
 from core.token import verify_token
 from core.nickname import generate_random_name
 from api.chat.chat_cleanup import delete_chat_after_timeout, deletion_tasks
-from models.auth import User
-from models.report import Report
-from models.emotion import Emotion
-from models.matching import Matching
-from models.chat import ChatMessage
+from models.auth.auth import User
+from models.report.report import Report
+from models.emotion.emotion import Emotion
+from models.chat.matching import Matching
+from models.chat.chat import ChatMessage
 from datetime import datetime
 import asyncio
 

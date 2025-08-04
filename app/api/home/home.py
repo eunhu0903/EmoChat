@@ -4,8 +4,8 @@ from sqlalchemy import func
 from datetime import datetime, date
 from db.session import get_db
 from core.token import verify_token, get_token_from_header
-from models.auth import User
-from models.emotion import Emotion
+from models.auth.auth import User
+from models.emotion.emotion import Emotion
 
 router = APIRouter()
 

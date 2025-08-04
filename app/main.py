@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from api.admin import user_management, user_status, role
 from api.auth import auth, email_verification
 from api.home import home

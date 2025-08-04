@@ -10,10 +10,10 @@ from core.security import (
     decode_refresh_token
 )
 from db.session import get_db
-from models.auth import User
-from models.email_verification import EmailVerification
-from schemas.auth import UserCreate, Token, UserResponse, UserLogin
-from models.token import RefreshToken
+from models.auth.auth import User
+from models.auth.email_verification import EmailVerification
+from schemas.auth.auth import UserCreate, Token, UserResponse, UserLogin
+from models.token.token import RefreshToken
 from core.config import REFRESH_TOKEN_EXPIRE_DAYS
 
 router = APIRouter()

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from db.session import get_db
-from models.email_verification import EmailVerification
-from schemas.email_verification import EmailRequest, CodeVerifyRequest
+from models.auth.email_verification import EmailVerification
+from schemas.auth.email_verification import EmailRequest, CodeVerifyRequest
 from core.send_email import send_verification_email
 from datetime import datetime, timedelta
 import secrets

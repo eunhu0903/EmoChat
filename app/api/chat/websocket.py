@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from typing import Dict, List, Tuple
 from db.session import get_db
@@ -11,21 +11,23 @@ from models.emotion.emotion import Emotion
 from models.chat.matching import Matching
 from models.chat.chat import ChatMessage
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import asyncio
 
 router = APIRouter()
+KST = ZoneInfo("Asia/Seoul")
 
 def get_user_from_token(token: str, db: Session) -> User:
     email = verify_token(token, db)
-    user = db.query(User).filter(User.email == email).first()
+    user = db.query(User).filter(User.email == email).one_or_none()
     if not user:
-        raise ValueError("유저를 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     return user
 
 def get_blocked_user_ids(user_id: int, db: Session) -> set:
     reported = db.query(Report.reported_id).filter(Report.reporter_id == user_id)
     reported_by = db.query(Report.reporter_id).filter(Report.reported_id == user_id)
-    return set([uid for (uid,) in reported.union(reported_by).all()])
+    return set(uid for (uid,) in reported.union(reported_by).all())
 
 class MatchManager:
     def __init__(self):
@@ -41,7 +43,7 @@ class MatchManager:
         blocked_ids = get_blocked_user_ids(user.id, db)
 
         for idx, (other_email, other_ws, other_nick) in enumerate(self.waiting_users[mood]):
-            other_user = db.query(User).filter(User.email == other_email).first()
+            other_user = db.query(User).filter(User.email == other_email).one_or_none()
             if other_user and other_user.id not in blocked_ids:
                 del self.waiting_users[mood][idx]
                 self.active_pairs[websocket] = other_ws
@@ -49,12 +51,10 @@ class MatchManager:
                 self.nicknames[websocket] = nickname
                 self.nicknames[other_ws] = other_nick
 
-                match = Matching(user1_id=user.id, user2_id=other_user.id, created_at=datetime.utcnow())
+                match = Matching(user1_id=user.id, user2_id=other_user.id, created_at=datetime.now(KST))
                 db.add(match)
                 db.commit()
 
-                if not hasattr(self, "match_ids"):
-                    self.match_ids = {}
                 self.match_ids[websocket] = match.id
                 self.match_ids[other_ws] = match.id
 
@@ -69,17 +69,43 @@ class MatchManager:
 
     async def cleanup(self, websocket: WebSocket, mood: str):
         if websocket in self.active_pairs:
-            partner = self.active_pairs.pop(websocket)
-            self.active_pairs.pop(partner, None)
-            await partner.close()
-            self.nicknames.pop(partner, None)
-            self.match_ids.pop(partner, None)
+            partner = self.active_pairs.pop(websocket, None)
+            if partner:
+                self.active_pairs.pop(partner, None)
+                self.nicknames.pop(partner, None)
+                self.match_ids.pop(partner, None)
+                try:
+                    await partner.close()
+                except Exception:
+                    pass
         else:
             self.waiting_users[mood] = [
                 (e, ws, n) for (e, ws, n) in self.waiting_users.get(mood, []) if ws != websocket
             ]
         self.nicknames.pop(websocket, None)
         self.match_ids.pop(websocket, None)
+
+async def end_chat_session(websocket: WebSocket, partner: WebSocket | None, manager: MatchManager):
+    if partner:
+        try:
+            await partner.send_text("❌ 상대방이 채팅을 종료했습니다.")
+        except Exception:
+            pass
+        try:
+            await partner.close()
+        except Exception:
+            pass
+        manager.active_pairs.pop(partner, None)
+        manager.nicknames.pop(partner, None)
+        manager.match_ids.pop(partner, None)
+    
+    manager.active_pairs.pop(websocket, None)
+    manager.nicknames.pop(websocket, None)
+    manager.match_ids.pop(websocket, None)
+    try:
+        await websocket.close()
+    except Exception:
+        pass
 
 match_manager = MatchManager()
 
@@ -91,7 +117,7 @@ async def websocket_match(
 ):
     try:
         user = get_user_from_token(token, db)
-    except:
+    except Exception:
         await websocket.close(code=4401)
         return
 
@@ -127,35 +153,8 @@ async def websocket_match(
 
             elif data == "__exit__":
                 partner = match_manager.active_pairs.get(websocket)
-                
-                if partner:
-                    # 상대방에게 메시지 보내기 시도 (닫혔으면 무시)
-                    try:
-                        await partner.send_text("❌ 상대방이 채팅을 종료했습니다.")
-                    except Exception:
-                        pass
-                    
-                    # 상대방 소켓 닫기 시도 (닫혔으면 무시)
-                    try:
-                        await partner.close()
-                    except Exception:
-                        pass
-                    
-                    # 매칭 해제
-                    match_manager.active_pairs.pop(websocket, None)
-                    match_manager.active_pairs.pop(partner, None)
-                    match_manager.nicknames.pop(partner, None)
-                    match_manager.nicknames.pop(websocket, None)
-                
-                # 현재 웹소켓 닫기 시도 (닫혔으면 무시)
-                try:
-                    await websocket.close()
-                except Exception:
-                    pass
-
+                await end_chat_session(websocket, partner, match_manager)
                 break
-
-
 
             elif websocket in match_manager.active_pairs:
                 partner = match_manager.active_pairs[websocket]
@@ -166,7 +165,7 @@ async def websocket_match(
                         match_id=current_match_id,
                         sender_id=user.id,
                         content=data,
-                        created_at=datetime.utcnow()
+                        created_at=datetime.now(KST)
                     ))
                     db.commit()
 
@@ -181,6 +180,5 @@ async def websocket_match(
         if match_id:
             if match_id in deletion_tasks:
                 deletion_tasks[match_id].cancel()
-                
             deletion_tasks[match_id] = asyncio.create_task(delete_chat_after_timeout(db, match_id, 300))
             

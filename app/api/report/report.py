@@ -8,18 +8,31 @@ from models.report.report import Report
 from models.chat.chat import ChatMessage
 from schemas.report.report import ReportCreate
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 router = APIRouter()
+KST = ZoneInfo("Asia/Seoul")
 
 @router.post("/report", tags=["Report"])
-def report_user(report: ReportCreate, token: str = Depends(get_token_from_header), db: Session = Depends(get_db)):
-    email = verify_token(token, db)
-    reporter = db.query(User).filter(User.email == email).first()
+def report_user(report: ReportCreate, authorization: str = Depends(get_token_from_header), db: Session = Depends(get_db)):
+    email = verify_token(authorization, db)
+    reporter = db.query(User).filter(User.email == email).one_or_none()
+
+    if not reporter:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
 
     if reporter.id == report.reported_id:
         raise HTTPException(status_code=400, detail="자기 자신은 신고할 수 없습니다.")
     
-    existing_report = db.query(Report).filter(Report.reporter_id == reporter.id, Report.reported_id == report.reported_id).first()
+    reported_user = db.query(User).filter(User.id == report.reported_id).one_or_none()
+    
+    if not reported_user:
+        raise HTTPException(status_code=404, detail="신고할 사용자를 찾을 수 없습니다.")
+
+    existing_report = db.query(Report).filter(
+        Report.reporter_id == reporter.id, 
+        Report.reported_id == report.reported_id
+        ).one_or_none()
 
     if existing_report:
         raise HTTPException(status_code=400, detail="이미 신고한 사용자 입니다.")
@@ -30,7 +43,7 @@ def report_user(report: ReportCreate, token: str = Depends(get_token_from_header
         reporter_id = reporter.id,
         reported_id = report.reported_id,
         reason = report.reason,
-        created_at = datetime.utcnow()
+        created_at = datetime.now(KST)
     )
 
     db.add(new_report)
@@ -41,4 +54,4 @@ def report_user(report: ReportCreate, token: str = Depends(get_token_from_header
             websocket.deletion_tasks[report.match_id].cancel()
             websocket.deletion_tasks.pop(report.match_id, None)
 
-    return {"message": "신고가 접수되었습니다. 대화 기록은 보존됩니다."}
+    return {"message": f"{reported_user.username}님에 대한 신고가 접수되었습니다. 대화 기록은 보존됩니다."}
